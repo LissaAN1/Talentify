@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { SeedModule } from './seed/seed.module';
 
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
@@ -19,6 +20,7 @@ import { AppService } from './app.service.js';
       autoLoadEntities: true,
       synchronize: true,
     }),
+    SeedModule,
   ],
   controllers: [AppController],
   providers: [AppService],
