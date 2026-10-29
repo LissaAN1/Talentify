@@ -5,9 +5,7 @@ import {
   HttpCode,
   HttpStatus,
   Post,
-  UseGuards,
 } from '@nestjs/common';
-import { AuthGuard } from '@nestjs/passport';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -18,8 +16,10 @@ import {
 import { CreateUserDto } from '../users/dto/create-user.dto';
 import { User } from '../users/entities/user.entity';
 import { AuthService } from './auth.service';
+import { Auth } from './decorators/auth.decorator';
 import { GetUser } from './decorators/user.decorator';
 import { LoginUserDto } from './dto/login-user.dto';
+import { AppRoles } from './interfaces/app-roles';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -59,9 +59,8 @@ export class AuthController {
     return this.authService.loginUser(loginUserDto);
   }
 
-  // TODO(HU-06): reemplazar AuthGuard('jwt') por el decorador @Auth()
   @Get('profile')
-  @UseGuards(AuthGuard('jwt'))
+  @Auth()
   @ApiBearerAuth('JWT')
   @ApiOperation({
     summary: 'Obtener perfil propio',
@@ -76,9 +75,8 @@ export class AuthController {
     };
   }
 
-  // TODO(HU-06): reemplazar AuthGuard('jwt') por el decorador @Auth()
   @Post('logout')
-  @UseGuards(AuthGuard('jwt'))
+  @Auth()
   @HttpCode(HttpStatus.CREATED)
   @ApiBearerAuth('JWT')
   @ApiOperation({
@@ -89,5 +87,56 @@ export class AuthController {
   @ApiResponse({ status: 401, description: 'Token inválido o ausente.' })
   logout(@GetUser() user: Omit<User, 'password'>) {
     return this.authService.logout(user.id);
+  }
+
+  @Get('provider/dashboard')
+  @Auth(AppRoles.PROVIDER)
+  @ApiBearerAuth('JWT')
+  @ApiOperation({
+    summary: 'Dashboard del proveedor (PROVIDER)',
+    description: 'Accesible solo para usuarios con rol PROVIDER.',
+  })
+  @ApiResponse({ status: 200, description: 'Panel del proveedor.' })
+  @ApiResponse({ status: 403, description: 'Acceso denegado.' })
+  dashboardProvider(@GetUser() user: Omit<User, 'password'>) {
+    return {
+      mensaje: 'Panel del proveedor',
+      usuario: user,
+    };
+  }
+
+  @Get('client/dashboard')
+  @Auth(AppRoles.CLIENT)
+  @ApiBearerAuth('JWT')
+  @ApiOperation({
+    summary: 'Dashboard del cliente (CLIENT)',
+    description: 'Accesible solo para usuarios con rol CLIENT.',
+  })
+  @ApiResponse({ status: 200, description: 'Panel del cliente.' })
+  @ApiResponse({ status: 403, description: 'Acceso denegado.' })
+  dashboardClient(@GetUser() user: Omit<User, 'password'>) {
+    return {
+      mensaje: 'Panel del cliente',
+      usuario: user,
+    };
+  }
+
+  @Get('marketplace')
+  @Auth(AppRoles.PROVIDER, AppRoles.CLIENT)
+  @ApiBearerAuth('JWT')
+  @ApiOperation({
+    summary: 'Marketplace (PROVIDER / CLIENT)',
+    description: 'Accesible para PROVIDER y CLIENT. ADMIN no tiene acceso.',
+  })
+  @ApiResponse({ status: 200, description: 'Marketplace disponible.' })
+  @ApiResponse({
+    status: 403,
+    description: 'Acceso denegado (ADMIN no permitido).',
+  })
+  marketplace(@GetUser() user: Omit<User, 'password'>) {
+    return {
+      mensaje: 'Marketplace disponible',
+      roles: user.roles,
+    };
   }
 }
