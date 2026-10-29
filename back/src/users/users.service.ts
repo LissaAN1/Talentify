@@ -33,7 +33,7 @@ export class UsersService {
 
     if (existingUser) {
       throw new ConflictException(
-        'Ya existe un usuario registrado con ese correo',
+        'El correo ya está registrado',
       );
     }
 
