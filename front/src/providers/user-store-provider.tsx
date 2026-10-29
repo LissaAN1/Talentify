@@ -1,7 +1,7 @@
 'use client'
 
 import { UserStore, createUserStore } from "@/store/userStore"
-import { ReactNode, createContext, useContext, useRef } from "react"
+import { ReactNode, createContext, useContext, useState } from "react"
 import { useStore } from "zustand"
 
 export type UserStoreApi = ReturnType<typeof createUserStore>
@@ -13,13 +13,10 @@ export interface Props {
 }
 
 export const UserStoreProvider = ({ children }: Props) => {
-    const storeRef = useRef<UserStoreApi | null>(null);
-    if (storeRef.current === null) {
-        storeRef.current = createUserStore();
-    }
+    const [store] = useState<UserStoreApi>(() => createUserStore());
 
     return (
-        <UserStoreContext.Provider value={storeRef.current}>
+        <UserStoreContext.Provider value={store}>
             {children}
         </UserStoreContext.Provider>
     );
