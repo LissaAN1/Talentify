@@ -1,4 +1,5 @@
 import { apiClient } from "@/services/api-client";
+import { AppRoles } from "@/constants/app-roles";
 import { Login2FAResponse, LoginResponse, ProfileResponse } from "@/interfaces/auth";
 import { CreateUserDto, User } from "@/interfaces/user";
 
@@ -27,6 +28,22 @@ class AuthService {
     // Cerrar sesion
     async logout(): Promise<{ mensaje: string }> {
         const response = await apiClient.post<{ mensaje: string }>("/auth/logout");
+        return response.data;
+    }
+
+    // Endpoints de ejemplo protegidos por rol
+    async getProviderDashboard(): Promise<{ mensaje: string; usuario: User }> {
+        const response = await apiClient.get<{ mensaje: string; usuario: User }>("/auth/provider/dashboard");
+        return response.data;
+    }
+
+    async getClientDashboard(): Promise<{ mensaje: string; usuario: User }> {
+        const response = await apiClient.get<{ mensaje: string; usuario: User }>("/auth/client/dashboard");
+        return response.data;
+    }
+
+    async getMarketplace(): Promise<{ mensaje: string; roles: AppRoles[] }> {
+        const response = await apiClient.get<{ mensaje: string; roles: AppRoles[] }>("/auth/marketplace");
         return response.data;
     }
 }
