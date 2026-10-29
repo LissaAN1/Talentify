@@ -8,6 +8,7 @@ import { User } from '../users/entities/user.entity';
 import { UsersModule } from '../users/users.module';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
+import { UserRoleGuard } from './guards/user-role.guard';
 import { JwtStrategy } from './strategies/jwt.strategy';
 
 @Module({
@@ -28,7 +29,7 @@ import { JwtStrategy } from './strategies/jwt.strategy';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy],
+  providers: [AuthService, JwtStrategy, UserRoleGuard],
   exports: [AuthService, TypeOrmModule, JwtModule, PassportModule],
 })
 export class AuthModule {}
