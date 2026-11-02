@@ -10,6 +10,7 @@ import { Repository } from 'typeorm';
 
 import { AppRoles } from '../auth/interfaces/app-roles';
 import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateUserRolesDto } from './dto/update-user-roles.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { User } from './entities/user.entity';
 
@@ -18,6 +19,13 @@ export class UsersService {
   constructor(
     @InjectRepository(User) private readonly userRepository: Repository<User>,
   ) {}
+
+  getAll(): Promise<User[]> {
+    return this.userRepository.find({
+      where: { isActive: true },
+      order: { createdAt: 'DESC' },
+    });
+  }
 
   async getOneById(id: string): Promise<User> {
     const user = await this.userRepository.findOne({
@@ -74,5 +82,34 @@ export class UsersService {
     }
 
     return this.getOneById(id);
+  }
+
+  async updateRoles(
+    id: string,
+    updateUserRolesDto: UpdateUserRolesDto,
+  ): Promise<User> {
+    const updateResult = await this.userRepository.update(id, {
+      roles: updateUserRolesDto.roles,
+    });
+
+    if (!updateResult.affected) {
+      throw new NotFoundException(`No se encontró un usuario con el id: ${id}`);
+    }
+
+    return this.getOneById(id);
+  }
+
+  async delete(id: string): Promise<User> {
+    const user = await this.userRepository.findOne({
+      where: { id, isActive: true },
+    });
+
+    if (!user) {
+      throw new NotFoundException(`No se encontró un usuario con el id: ${id}`);
+    }
+
+    user.isActive = false; // Soft delete para mantener integridad referencial y trazabilidad
+
+    return this.userRepository.save(user);
   }
 }
