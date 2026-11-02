@@ -119,7 +119,7 @@ describe('AuthService', () => {
       };
 
       mockUsersService.create.mockRejectedValue(
-        new ConflictException('Ya existe un usuario registrado con ese correo'),
+        new ConflictException('El correo ya está registrado'),
       );
 
       await expect(service.createUser(createUserDto)).rejects.toThrow(
