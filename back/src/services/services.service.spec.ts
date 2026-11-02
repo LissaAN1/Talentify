@@ -74,6 +74,30 @@ describe('ServicesService', () => {
     expect(service).toBeDefined();
   });
 
+  //getAll
+  describe('getAll', () => {
+    it('should return an array of active services', async () => {
+      const services = [makeService(), makeService({ id: 'service-uuid-2' })];
+      repo.find!.mockResolvedValue(services);
+
+      const result = await service.getAll();
+
+      expect(repo.find).toHaveBeenCalledWith({
+        where: { status: ServiceStatus.ACTIVE },
+        order: { createdAt: 'DESC' },
+      });
+      expect(result).toEqual(services);
+    });
+
+    it('should return an empty array when no active services exist', async () => {
+      repo.find!.mockResolvedValue([]);
+
+      const result = await service.getAll();
+
+      expect(result).toEqual([]);
+    });
+  });
+
   //getOneById
   describe('getOneById', () => {
     it('should return a service when it exists', async () => {

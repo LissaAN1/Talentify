@@ -63,6 +63,19 @@ describe('ServicesController', () => {
     expect(controller).toBeDefined();
   });
 
+  //getAll
+  describe('getAll', () => {
+    it('should call servicesService.getAll and return the result', async () => {
+      const services = [makeService(), makeService({ id: 'service-uuid-2' })];
+      mockServicesService.getAll.mockResolvedValue(services);
+
+      const result = await controller.getAll();
+
+      expect(mockServicesService.getAll).toHaveBeenCalledTimes(1);
+      expect(result).toEqual(services);
+    });
+  });
+
   //getMyServices
   describe('getMyServices', () => {
     it('should call getByProvider with the authenticated user id', async () => {
@@ -76,6 +89,21 @@ describe('ServicesController', () => {
         provider.id,
       );
       expect(result).toEqual(services);
+    });
+  });
+
+  //getOneById
+  describe('getOneById', () => {
+    it('should call getOneById with the given id', async () => {
+      const mockService = makeService();
+      mockServicesService.getOneById.mockResolvedValue(mockService);
+
+      const result = await controller.getOneById('service-uuid-1');
+
+      expect(mockServicesService.getOneById).toHaveBeenCalledWith(
+        'service-uuid-1',
+      );
+      expect(result).toEqual(mockService);
     });
   });
 
