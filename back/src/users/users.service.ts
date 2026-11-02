@@ -1,4 +1,8 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 
 import * as bcrypt from 'bcrypt';
@@ -6,6 +10,7 @@ import { Repository } from 'typeorm';
 
 import { AppRoles } from '../auth/interfaces/app-roles';
 import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
 import { User } from './entities/user.entity';
 
 @Injectable()
@@ -53,5 +58,21 @@ export class UsersService {
     const savedUser = await this.userRepository.save(newUser);
 
     return this.getOneById(savedUser.id);
+  }
+
+  async update(id: string, updateUserDto: UpdateUserDto): Promise<User> {
+    const updateData = { ...updateUserDto };
+
+    if (updateData.password) {
+      updateData.password = await bcrypt.hash(updateData.password, 10);
+    }
+
+    const updateResult = await this.userRepository.update(id, updateData);
+
+    if (!updateResult.affected) {
+      throw new NotFoundException(`No se encontró un usuario con el id: ${id}`);
+    }
+
+    return this.getOneById(id);
   }
 }
