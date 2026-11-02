@@ -19,6 +19,13 @@ export class ServicesService {
     private readonly serviceRepository: Repository<Service>,
   ) {}
 
+  getAll(): Promise<Service[]> {
+    return this.serviceRepository.find({
+      where: { status: ServiceStatus.ACTIVE },
+      order: { createdAt: 'DESC' },
+    });
+  }
+
   getByProvider(providerId: string): Promise<Service[]> {
     return this.serviceRepository.find({
       where: { provider: { id: providerId } },

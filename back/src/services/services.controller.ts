@@ -48,6 +48,19 @@ export class ServicesController {
     return this.servicesService.create(user, createServiceDto);
   }
 
+  @Get()
+  @Auth()
+  @ApiOperation({
+    summary: 'Listar servicios activos',
+    description:
+      'Retorna todos los servicios con estado ACTIVE. Accesible para cualquier usuario autenticado.',
+  })
+  @ApiResponse({ status: 200, description: 'Lista de servicios activos.' })
+  @ApiResponse({ status: 401, description: 'Token inválido o ausente.' })
+  getAll(): Promise<Service[]> {
+    return this.servicesService.getAll();
+  }
+
   @Get('my')
   @Auth(AppRoles.PROVIDER, AppRoles.ADMIN)
   @ApiOperation({
@@ -62,6 +75,16 @@ export class ServicesController {
   })
   getMyServices(@GetUser() user: User): Promise<Service[]> {
     return this.servicesService.getByProvider(user.id);
+  }
+
+  @Get(':id')
+  @Auth()
+  @ApiOperation({ summary: 'Obtener servicio por ID' })
+  @ApiParam({ name: 'id', description: 'UUID del servicio', type: 'string' })
+  @ApiResponse({ status: 200, description: 'Servicio encontrado.' })
+  @ApiResponse({ status: 404, description: 'Servicio no encontrado.' })
+  getOneById(@Param('id', ParseUUIDPipe) id: string): Promise<Service> {
+    return this.servicesService.getOneById(id);
   }
 
   @Put(':id')
