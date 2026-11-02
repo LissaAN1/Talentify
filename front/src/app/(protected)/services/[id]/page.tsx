@@ -20,7 +20,7 @@ type Props = { params: Promise<{ id: string }> };
 
 export default function ServiceDetailPage({ params }: Props) {
     const { id } = React.use(params);
-    const { service, isLoading, error } = useService(id);
+    const { service, isLoading, error, getService } = useService(id);
     const { user, isAdmin } = useAuth();
     const { deleteService, isLoading: isDeleting, error: deleteError } = useDeleteService();
 
@@ -37,6 +37,8 @@ export default function ServiceDetailPage({ params }: Props) {
         if (ok) {
             setSuccessMessage("El servicio fue desactivado correctamente.");
             setOpen(false);
+            // Recarga el servicio para que el detalle muestre el estado real (Inactivo).
+            await getService();
         }
     };
 
