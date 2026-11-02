@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import axios from "axios";
+import Cookies from "js-cookie";
 
 import { Alert } from "@/components/ui/Alert";
 
@@ -10,8 +11,11 @@ import { UserForm } from "@/components/users/UserForm";
 
 import { UpdateUserDto, User } from "@/interfaces/user";
 import { usersService } from "@/services/users.service";
+import { useUserStore } from "@/providers/user-store-provider";
 
 export default function ProfilePage() {
+    const storeToken = useUserStore((state) => state.token);
+    const setStoreUser = useUserStore((state) => state.setUser);
     const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
 
@@ -51,6 +55,21 @@ export default function ProfilePage() {
         try {
             const updatedUser = await usersService.updateMe(values);
             setUser(updatedUser);
+
+            // Mantiene sincronizados el menú lateral y la cookie de sesión con el nombre nuevo.
+            Cookies.set("currentUser", JSON.stringify({
+                id: updatedUser.id,
+                name: updatedUser.name,
+                email: updatedUser.email,
+                roles: updatedUser.roles,
+            }), { expires: 7 });
+            setStoreUser({
+                id: updatedUser.id,
+                name: updatedUser.name,
+                email: updatedUser.email,
+                roles: updatedUser.roles,
+                token: storeToken,
+            });
             setProfileSuccess("Perfil actualizado correctamente.");
         } catch (err: unknown) {
             const message = axios.isAxiosError(err)
