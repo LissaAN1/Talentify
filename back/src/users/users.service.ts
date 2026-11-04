@@ -1,0 +1,115 @@
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+
+import * as bcrypt from 'bcrypt';
+import { Repository } from 'typeorm';
+
+import { AppRoles } from '../auth/interfaces/app-roles';
+import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateUserRolesDto } from './dto/update-user-roles.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
+import { User } from './entities/user.entity';
+
+@Injectable()
+export class UsersService {
+  constructor(
+    @InjectRepository(User) private readonly userRepository: Repository<User>,
+  ) {}
+
+  getAll(): Promise<User[]> {
+    return this.userRepository.find({
+      where: { isActive: true },
+      order: { createdAt: 'DESC' },
+    });
+  }
+
+  async getOneById(id: string): Promise<User> {
+    const user = await this.userRepository.findOne({
+      where: { id, isActive: true },
+    });
+
+    if (!user) {
+      throw new NotFoundException(`No se encontró un usuario con el id: ${id}`);
+    }
+
+    return user;
+  }
+
+  async create(createUserDto: CreateUserDto): Promise<User> {
+    const existingUser = await this.userRepository.findOne({
+      where: { email: createUserDto.email },
+    });
+
+    if (existingUser) {
+      throw new ConflictException(
+        'El correo ya está registrado',
+      );
+    }
+
+    const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
+
+    const newUser = this.userRepository.create({
+      ...createUserDto,
+      password: hashedPassword,
+      roles:
+        createUserDto.roles && createUserDto.roles.length > 0
+          ? createUserDto.roles
+          : [AppRoles.CLIENT],
+      isActive: true,
+      refreshToken: null,
+    });
+
+    const savedUser = await this.userRepository.save(newUser);
+
+    return this.getOneById(savedUser.id);
+  }
+
+  async update(id: string, updateUserDto: UpdateUserDto): Promise<User> {
+    const updateData = { ...updateUserDto };
+
+    if (updateData.password) {
+      updateData.password = await bcrypt.hash(updateData.password, 10);
+    }
+
+    const updateResult = await this.userRepository.update(id, updateData);
+
+    if (!updateResult.affected) {
+      throw new NotFoundException(`No se encontró un usuario con el id: ${id}`);
+    }
+
+    return this.getOneById(id);
+  }
+
+  async updateRoles(
+    id: string,
+    updateUserRolesDto: UpdateUserRolesDto,
+  ): Promise<User> {
+    const updateResult = await this.userRepository.update(id, {
+      roles: updateUserRolesDto.roles,
+    });
+
+    if (!updateResult.affected) {
+      throw new NotFoundException(`No se encontró un usuario con el id: ${id}`);
+    }
+
+    return this.getOneById(id);
+  }
+
+  async delete(id: string): Promise<User> {
+    const user = await this.userRepository.findOne({
+      where: { id, isActive: true },
+    });
+
+    if (!user) {
+      throw new NotFoundException(`No se encontró un usuario con el id: ${id}`);
+    }
+
+    user.isActive = false; // Soft delete para mantener integridad referencial y trazabilidad
+
+    return this.userRepository.save(user);
+  }
+}

@@ -36,13 +36,13 @@ export class User {
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt!: Date;
 
-  @Column('varchar', { nullable: true, name: 'refresh_token' })
+  @Column('varchar', { nullable: true, name: 'refresh_token', select: false })
   refreshToken!: string | null;
 
   @Column({ default: false })
   isTwoFactorEnabled?: boolean;
 
-  @Column({ nullable: true })
+  @Column({ nullable: true, select: false })
   twoFactorSecret?: string;
 
   @OneToMany(() => Service, (service) => service.provider)
