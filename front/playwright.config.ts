@@ -13,10 +13,12 @@ process.env.NEXT_PUBLIC_API_URL = apiURL;
 
 export default defineConfig({
   testDir: "./tests/e2e",
+  // el servidor de desarrollo compila cada ruta la primera vez que se visita
+  timeout: 60_000,
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  retries: process.env.CI ? 2 : 1,
+  workers: 1,
   reporter: [
     ["list"],
     ["html", { outputFolder: "playwright-report", open: "never" }],
@@ -25,7 +27,7 @@ export default defineConfig({
     baseURL,
     trace: "on-first-retry",
     screenshot: "only-on-failure",
-    video: "retain-on-failure",
+    video: "off",
     viewport: { width: 1280, height: 720 },
   },
   webServer: {
