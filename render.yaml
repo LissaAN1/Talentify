@@ -1,0 +1,43 @@
+# Blueprint de Render: API (NestJS), frontend (Next.js) y base de datos PostgreSQL.
+# Uso: en Render, "New > Blueprint" y seleccionar este repositorio.
+databases:
+  - name: talentify-db
+    databaseName: talentify_db
+    user: talentify_user
+    plan: free
+
+services:
+  - type: web
+    name: talentify-api
+    runtime: node
+    rootDir: back
+    plan: free
+    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm build
+    startCommand: node dist/main
+    healthCheckPath: /
+    envVars:
+      - key: DB_HOST
+        fromDatabase: { name: talentify-db, property: host }
+      - key: DB_PORT
+        fromDatabase: { name: talentify-db, property: port }
+      - key: DB_NAME
+        fromDatabase: { name: talentify-db, property: database }
+      - key: DB_USERNAME
+        fromDatabase: { name: talentify-db, property: user }
+      - key: DB_PASSWORD
+        fromDatabase: { name: talentify-db, property: password }
+      - key: JWT_SECRET
+        generateValue: true
+      - key: FRONTEND_URL
+        sync: false # URL pública del frontend, se define en el panel de Render
+
+  - type: web
+    name: talentify-web
+    runtime: node
+    rootDir: front
+    plan: free
+    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm build
+    startCommand: pnpm start
+    envVars:
+      - key: NEXT_PUBLIC_API_URL
+        sync: false # URL pública de la API, se define en el panel de Render
