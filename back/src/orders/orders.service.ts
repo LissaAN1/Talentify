@@ -29,6 +29,14 @@ export class OrdersService {
     return this.orderRepository.save(order);
   }
 
+  getAll(userId: string): Promise<Order[]> {
+    return this.orderRepository.find({
+      where: { user: { id: userId } },
+      relations: { user: true, service: { provider: true } },
+      order: { createdAt: 'DESC' },
+    });
+  }
+
   async getById(orderId: string, userId: string): Promise<Order> {
     const order: Order | null = await this.orderRepository.findOne({
       where: { id: orderId },
@@ -44,5 +52,26 @@ export class OrdersService {
       );
 
     return order;
+  }
+
+  getByProvider(providerId: string): Promise<Order[]> {
+    return this.orderRepository.find({
+      where: {
+        service: {
+          provider: {
+            id: providerId,
+          },
+        },
+      },
+      relations: {
+        user: true,
+        service: {
+          provider: true,
+        },
+      },
+      order: {
+        createdAt: 'DESC',
+      },
+    });
   }
 }

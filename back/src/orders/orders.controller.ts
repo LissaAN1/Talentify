@@ -44,6 +44,28 @@ export class OrdersController {
     return this.ordersService.create(user.id, createOrderDto);
   }
 
+  @Get()
+  @ApiOperation({
+    summary: 'Listar mis órdenes',
+    description:
+      'Retorna todas las órdenes del usuario autenticado, ordenadas por fecha descendente.',
+  })
+  @ApiResponse({ status: 200, description: 'Lista de órdenes del usuario.' })
+  @ApiResponse({ status: 401, description: 'Token inválido o ausente.' })
+  getAll(@GetUser() user: any): Promise<Order[]> {
+    return this.ordersService.getAll(user.id);
+  }
+
+  @Get('provider')
+  @ApiOperation({
+    summary: 'Listar órdenes recibidas por el proveedor',
+    description:
+      'Retorna las órdenes asociadas a servicios del proveedor autenticado.',
+  })
+  getProviderOrders(@GetUser() user: any): Promise<Order[]> {
+    return this.ordersService.getByProvider(user.id);
+  }
+
   @Get(':orderId')
   @ApiOperation({ summary: 'Obtener orden por ID' })
   @ApiParam({

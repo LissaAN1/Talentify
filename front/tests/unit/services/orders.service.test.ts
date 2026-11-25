@@ -183,6 +183,23 @@ describe("ordersService", () => {
 
   // -- create --------------------------------------
 
+  describe("getProviderOrders()", () => {
+    it("llama a GET /orders/provider y devuelve las órdenes recibidas", async () => {
+      vi.mocked(apiClient.get).mockResolvedValue({ data: [mockOrder] });
+
+      const result = await ordersService.getProviderOrders();
+
+      expect(apiClient.get).toHaveBeenCalledWith("/orders/provider", expect.any(Object));
+      expect(result).toEqual([mockOrder]);
+    });
+
+    it("propaga el error si la API falla", async () => {
+      vi.mocked(apiClient.get).mockRejectedValue(new Error("Network Error"));
+
+      await expect(ordersService.getProviderOrders()).rejects.toThrow("Network Error");
+    });
+  });
+
   describe("create()", () => {
     it("llama a POST /orders con el payload correcto", async () => {
       const created: Order = { ...mockOrder, id: "new-order" };

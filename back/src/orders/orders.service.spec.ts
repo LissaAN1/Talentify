@@ -107,6 +107,31 @@ describe('OrdersService', () => {
     });
   });
 
+  //getAll
+  describe('getAll()', () => {
+    it('debe retornar las órdenes del usuario ordenadas por fecha DESC', async () => {
+      const orders = [makeOrder(), makeOrder({ id: 'order-uuid-002' })];
+      repo.find.mockResolvedValue(orders);
+
+      const result = await service.getAll(USER_ID);
+
+      expect(repo.find).toHaveBeenCalledWith({
+        where: { user: { id: USER_ID } },
+        relations: { user: true, service: { provider: true } },
+        order: { createdAt: 'DESC' },
+      });
+      expect(result).toHaveLength(2);
+    });
+
+    it('debe retornar arreglo vacío si el usuario no tiene órdenes', async () => {
+      repo.find.mockResolvedValue([]);
+
+      const result = await service.getAll(USER_ID);
+
+      expect(result).toEqual([]);
+    });
+  });
+
   //getById
   describe('getById()', () => {
     it('debe retornar la orden cuando existe y pertenece al usuario', async () => {
@@ -135,6 +160,48 @@ describe('OrdersService', () => {
       await expect(service.getById(ORDER_ID, USER_ID)).rejects.toThrow(
         ForbiddenException,
       );
+    });
+  });
+
+  // getByProvider
+  describe('getByProvider()', () => {
+    const PROVIDER_ID = 'provider-uuid-1';
+
+    it('debe retornar las órdenes asociadas a servicios del proveedor', async () => {
+      const orders = [makeOrder(), makeOrder({ id: 'order-uuid-002' })];
+
+      repo.find.mockResolvedValue(orders);
+
+      const result = await service.getByProvider(PROVIDER_ID);
+
+      expect(repo.find).toHaveBeenCalledWith({
+        where: {
+          service: {
+            provider: {
+              id: PROVIDER_ID,
+            },
+          },
+        },
+        relations: {
+          user: true,
+          service: {
+            provider: true,
+          },
+        },
+        order: {
+          createdAt: 'DESC',
+        },
+      });
+
+      expect(result).toHaveLength(2);
+    });
+
+    it('debe retornar arreglo vacío si el proveedor no tiene trabajos recibidos', async () => {
+      repo.find.mockResolvedValue([]);
+
+      const result = await service.getByProvider(PROVIDER_ID);
+
+      expect(result).toEqual([]);
     });
   });
 });

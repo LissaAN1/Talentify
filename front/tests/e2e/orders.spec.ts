@@ -3,6 +3,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { loginAs } from "./helpers/auth";
 import {
     mockOrdersApi,
+    pendingOrder,
     mockService,
 } from "./helpers/orders-mock";
 
@@ -13,6 +14,75 @@ const amountInput = (page: Page) => page.locator('input[name="totalAmount"]');
 test.describe("Orders", () => {
     test.beforeEach(async ({ context, baseURL }) => {
         await loginAs(context, "CLIENT", baseURL!);
+    });
+
+    test("muestra listado de órdenes con tabla, estados y enlace al detalle", async ({ page }) => {
+        await mockOrdersApi(page);
+
+        await page.goto("/orders");
+
+        await expect(page.getByRole("heading", { name: "Órdenes" })).toBeVisible();
+        await expect(page.getByText("Diseño de logo profesional")).toBeVisible();
+        await expect(page.getByText("Landing page básica")).toBeVisible();
+
+        await expect(page.getByText("Pendiente")).toBeVisible();
+        await expect(page.getByText("Completada")).toBeVisible();
+
+        await expect(page.getByRole("link", { name: /^ver$/i }).first()).toBeVisible();
+    });
+
+    test("muestra estado vacío cuando no hay órdenes", async ({ page }) => {
+        await mockOrdersApi(page, {
+            orders: [],
+        });
+
+        await page.goto("/orders");
+
+        await expect(page.getByText("Aún no tienes pedidos")).toBeVisible();
+        await expect(page.getByText("Cuando contrates un servicio desde el marketplace")).toBeVisible();
+        await expect(page.getByRole("link", { name: "Explorar marketplace" })).toBeVisible();
+    });
+
+    test("muestra alerta de error si falla la carga del listado", async ({ page }) => {
+        await mockOrdersApi(page, {
+            listError: true,
+        });
+
+        await page.goto("/orders");
+
+        await expect(page.getByText("Error al cargar órdenes")).toBeVisible();
+        await expect(page.getByText(/No se pudieron cargar las órdenes/i)).toBeVisible();
+    });
+
+    test("cada pedido expone el enlace correcto al detalle de la orden", async ({ page }) => {
+        await mockOrdersApi(page);
+
+        await page.goto("/orders");
+
+        const detailLink = page.getByRole("link", { name: /^ver$/i }).first();
+
+        await expect(detailLink).toBeVisible();
+        await expect(detailLink).toHaveAttribute("href", `/orders/${pendingOrder.id}`);
+    });
+
+    test("muestra error cuando el detalle de la orden no existe", async ({ page }) => {
+        await mockOrdersApi(page);
+
+        await page.goto("/orders/00000000-0000-0000-0000-000000000000");
+
+        await expect(page.getByText("No se pudo cargar la orden")).toBeVisible();
+        await expect(page.getByText("Orden no encontrada.")).toBeVisible();
+    });
+
+    test("muestra error 403 cuando no tiene permiso para ver una orden", async ({ page }) => {
+        await mockOrdersApi(page, {
+            detailForbidden: true,
+        });
+
+        await page.goto(`/orders/${pendingOrder.id}`);
+
+        await expect(page.getByText("No se pudo cargar la orden")).toBeVisible();
+        await expect(page.getByText("No tienes permiso para ver esta orden.")).toBeVisible();
     });
 
     test("muestra el formulario de nueva orden", async ({ page }) => {
@@ -71,7 +141,7 @@ test.describe("Orders", () => {
         await page.getByRole("button", { name: "Crear orden" }).click();
 
         await expect(page).toHaveURL(/\/orders\/55555555-5555-4555-8555-555555555555$/);
-        // El contenido del detalle se verifica en HU-17, cuando se agrega la página /orders/[id].
+        await expect(page.getByRole("heading", { name: "Diseño de logo profesional" })).toBeVisible();
 
         expect(api.requests.createdOrders).toHaveLength(1);
         expect(api.requests.createdOrders[0]).toEqual({
