@@ -8,6 +8,7 @@ const useLoginMock = vi.hoisted(() => vi.fn());
 const useLogoutMock = vi.hoisted(() => vi.fn());
 
 const loginMock = vi.hoisted(() => vi.fn());
+const verify2FAMock = vi.hoisted(() => vi.fn());
 const logoutMock = vi.hoisted(() => vi.fn());
 
 vi.mock("@/hooks/useCurrentUser", () => ({
@@ -30,6 +31,7 @@ describe("useAuth", () => {
 
         useLoginMock.mockReturnValue({
             login: loginMock,
+            verify2FA: verify2FAMock,
         });
 
         useLogoutMock.mockReturnValue({
@@ -120,7 +122,7 @@ describe("useAuth", () => {
         expect(result.current.hasRole([AppRoles.CLIENT])).toBe(true);
     });
 
-    it("expone login y logout desde los hooks internos", () => {
+    it("expone login, verify2FA y logout desde los hooks internos", () => {
         useCurrentUserMock.mockReturnValue({
             user: null,
             isAuthenticated: false,
@@ -130,6 +132,7 @@ describe("useAuth", () => {
         const { result } = renderHook(() => useAuth());
 
         expect(result.current.login).toBe(loginMock);
+        expect(result.current.verify2FA).toBe(verify2FAMock);
         expect(result.current.logout).toBe(logoutMock);
     });
 });
