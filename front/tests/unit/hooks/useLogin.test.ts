@@ -12,6 +12,7 @@ const storeMocks = vi.hoisted(() => ({
 
 const authServiceMock = vi.hoisted(() => ({
     login: vi.fn(),
+    verify2FA: vi.fn(),
 }));
 
 const cookiesMock = vi.hoisted(() => ({
@@ -157,5 +158,53 @@ describe("useLogin", () => {
         expect(storeMocks.setLoading).toHaveBeenNthCalledWith(1, true);
         expect(storeMocks.setLoading).toHaveBeenLastCalledWith(false);
         expect(storeMocks.clearUser).toHaveBeenCalled();
+    });
+
+    it("verify2FA valida el token, guarda cookies y actualiza el store", async () => {
+        authServiceMock.verify2FA.mockResolvedValue(normalLoginResponse);
+
+        const { result } = renderHook(() => useLogin());
+
+        let response: boolean | undefined;
+
+        await act(async () => {
+            response = await result.current.verify2FA("123456", "partial-token");
+        });
+
+        expect(authServiceMock.verify2FA).toHaveBeenCalledWith(
+            { token: "123456" },
+            "partial-token"
+        );
+
+        expect(cookiesMock.set).toHaveBeenCalledWith("token", "jwt-token", {
+            expires: 7,
+        });
+
+        expect(storeMocks.setUser).toHaveBeenCalledWith({
+            id: "user-1",
+            name: "Usuario Test",
+            email: "usuario@u.icesi.edu.co",
+            roles: [AppRoles.CLIENT],
+            token: "jwt-token",
+        });
+
+        expect(response).toBe(true);
+    });
+
+    it("verify2FA propaga errores y finaliza loading", async () => {
+        const error = new Error("Código inválido");
+
+        authServiceMock.verify2FA.mockRejectedValue(error);
+
+        const { result } = renderHook(() => useLogin());
+
+        await act(async () => {
+            await expect(
+                result.current.verify2FA("000000", "partial-token")
+            ).rejects.toThrow("Código inválido");
+        });
+
+        expect(storeMocks.setLoading).toHaveBeenNthCalledWith(1, true);
+        expect(storeMocks.setLoading).toHaveBeenLastCalledWith(false);
     });
 });

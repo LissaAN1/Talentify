@@ -2,9 +2,9 @@
 
 import { useState } from 'react';
 import { Suspense } from "react";
+import { isAxiosError } from 'axios';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { isAxiosError } from 'axios';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -14,27 +14,32 @@ function LoginContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const redirect = searchParams.get('redirect') || '/dashboard';
-
-    const { login, isLoading } = useAuth();
-
+    
+    const { login, verify2FA, isLoading } = useAuth();
+    
+    const [step, setStep] = useState<'login' | '2fa'>('login');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [twoFactorCode, setTwoFactorCode] = useState('');
+    const [partialToken, setPartialToken] = useState('');
     const [error, setError] = useState('');
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
-
+        
         if (!email || !password) {
             setError('Por favor ingresa tu correo y contraseña');
             return;
         }
-
+        
         try {
             const result = await login(email, password);
-
-            // TODO(HU-15): si result.requires2FA, pedir el código de 6 dígitos
-            if (result.success) {
+            
+            if (result.requires2FA && result.partialToken) {
+                setPartialToken(result.partialToken);
+                setStep('2fa');
+            } else if (result.success) {
                 router.push(redirect);
             }
         } catch (err: unknown) {
@@ -42,6 +47,69 @@ function LoginContent() {
             setError(Array.isArray(message) ? message.join('. ') : message || 'Credenciales inválidas');
         }
     };
+
+    const handleVerify2FA = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setError('');
+        
+        if (!twoFactorCode || twoFactorCode.length !== 6) {
+            setError('Por favor ingresa el código de 6 dígitos');
+            return;
+        }
+        
+        try {
+            const success = await verify2FA(twoFactorCode, partialToken);
+            if (success) {
+                router.push(redirect);
+            }
+        } catch (err: unknown) {
+            const message = isAxiosError(err) ? err.response?.data?.message : undefined;
+            setError(Array.isArray(message) ? message.join('. ') : message || 'Código inválido');
+        }
+    };
+
+    if (step === '2fa') {
+        return (
+            <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
+                <div className="tf-card w-full max-w-md p-8">
+                    <div className="text-center">
+                        <h1 className="text-2xl font-black text-slate-950">Autenticación de dos factores</h1>
+                        <p className="mt-2 text-sm text-slate-600">
+                            Ingresa el código de 6 dígitos generado por tu aplicación de autenticación
+                        </p>
+                    </div>
+
+                    <form onSubmit={handleVerify2FA} className="mt-8 space-y-6">
+                        {error && (
+                            <Alert variant="danger" title="Error" message={error} />
+                        )}
+
+                        <Input
+                            label="Código 2FA"
+                            type="text"
+                            placeholder="123456"
+                            value={twoFactorCode}
+                            onChange={(e) => setTwoFactorCode(e.target.value)}
+                            maxLength={6}
+                            autoFocus
+                        />
+
+                        <Button type="submit" className="w-full" disabled={isLoading}>
+                            {isLoading ? 'Verificando...' : 'Verificar'}
+                        </Button>
+
+                        <button
+                            type="button"
+                            onClick={() => setStep('login')}
+                            className="w-full text-center text-sm text-green-600 hover:underline"
+                        >
+                            Volver al inicio de sesión
+                        </button>
+                    </form>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">

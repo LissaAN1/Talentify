@@ -81,7 +81,6 @@ export default defineConfig({
         "src/**/*.d.ts",
         "src/app/**",
         "src/middleware.ts",
-        "src/services/services.service.ts",
       ],
     },
   },

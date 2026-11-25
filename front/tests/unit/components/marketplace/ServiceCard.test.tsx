@@ -1,6 +1,12 @@
 import { render, screen } from "@testing-library/react";
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+vi.mock("@/services/ratings.service", () => ({
+    ratingsService: {
+        getProviderSummary: vi.fn().mockResolvedValue({ average: 4.5, count: 2 }),
+    },
+}));
+
 import { ServiceCard } from "@/components/marketplace/ServiceCard";
 import { AppRoles } from "@/constants/app-roles";
 import { Service, ServiceCategory, ServiceStatus } from "@/interfaces/service";

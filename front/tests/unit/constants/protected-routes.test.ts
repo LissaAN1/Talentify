@@ -78,3 +78,12 @@ describe("protected-routes", () => {
         }
     });
 });
+
+describe("ruta /reports", () => {
+    it("solo admite ADMIN y PROVIDER", () => {
+        expect(getRequiredRolesForPath("/reports")).toEqual([
+            AppRoles.ADMIN,
+            AppRoles.PROVIDER,
+        ]);
+    });
+});

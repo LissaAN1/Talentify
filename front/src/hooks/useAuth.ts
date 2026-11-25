@@ -5,7 +5,7 @@ import { isAdmin, isProvider, isClient, hasRole, AppRoles } from "@/constants/ap
 
 export const useAuth = () => {
     const { user, isAuthenticated, isLoading } = useCurrentUser();
-    const { login } = useLogin();
+    const { login, verify2FA } = useLogin();
     const { logout } = useLogout();
 
     return {
@@ -13,6 +13,7 @@ export const useAuth = () => {
         isAuthenticated,
         isLoading,
         login,
+        verify2FA,
         logout,
         isAdmin: () => user ? isAdmin(user.roles) : false,
         isProvider: () => user ? isProvider(user.roles) : false,

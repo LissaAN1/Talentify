@@ -164,3 +164,40 @@ describe("authService", () => {
         ).rejects.toThrow("Credenciales inválidas");
     });
 });
+
+describe("authService - 2FA", () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+    });
+
+    it("generate2FAQR consulta GET /auth/2fa/generar", async () => {
+        mockedApiClient.get.mockResolvedValue({ data: { qrCode: "data:image/png;base64,abc" } });
+
+        const result = await authService.generate2FAQR();
+
+        expect(mockedApiClient.get).toHaveBeenCalledWith("/auth/2fa/generar");
+        expect(result.qrCode).toBe("data:image/png;base64,abc");
+    });
+
+    it("enable2FA envía el código a POST /auth/2fa/habilitar", async () => {
+        mockedApiClient.post.mockResolvedValue({ data: { mensaje: "2FA habilitado correctamente" } });
+
+        const result = await authService.enable2FA({ token: "123456" });
+
+        expect(mockedApiClient.post).toHaveBeenCalledWith("/auth/2fa/habilitar", { token: "123456" });
+        expect(result.mensaje).toBe("2FA habilitado correctamente");
+    });
+
+    it("verify2FA envía el partialToken en el header Authorization", async () => {
+        mockedApiClient.post.mockResolvedValue({ data: { token: "jwt-final" } });
+
+        const result = await authService.verify2FA({ token: "123456" }, "partial-jwt");
+
+        expect(mockedApiClient.post).toHaveBeenCalledWith(
+            "/auth/2fa/verificar",
+            { token: "123456" },
+            { headers: { Authorization: "Bearer partial-jwt" } }
+        );
+        expect(result.token).toBe("jwt-final");
+    });
+});
