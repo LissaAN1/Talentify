@@ -26,6 +26,14 @@ const mockUserFromDb: Partial<User> = {
   roles: [AppRoles.CLIENT],
   isActive: true,
 };
+const PROVIDER_ID = 'provider-uuid-1';
+const mockProviderFromDb: Partial<User> = {
+  id: PROVIDER_ID,
+  email: 'provider@u.icesi.edu.co',
+  name: 'Proveedor Test',
+  roles: [AppRoles.PROVIDER],
+  isActive: true,
+};
 const mockOtherUserFromDb: Partial<User> = {
   id: OTHER_UID,
   email: 'other@u.icesi.edu.co',
@@ -43,6 +51,7 @@ function makeUser(id: string = USER_ID): User {
 function makeService(id: string = SERVICE_ID): Service {
   const service = new Service();
   service.id = id;
+  service.provider = makeUser(PROVIDER_ID);
   return service;
 }
 
@@ -68,6 +77,7 @@ describe('Orders (integración)', () => {
   // Tokens para USER_ID y OTHER_UID
   let token: string;
   let otherToken: string;
+  let providerToken: string;
 
   beforeAll(async () => {
     mockOrderRepo = {
@@ -81,6 +91,8 @@ describe('Orders (integración)', () => {
       findOne: vi.fn().mockImplementation(({ where }) => {
         if (where.id === USER_ID && where.isActive)
           return Promise.resolve(mockUserFromDb);
+        if (where.id === PROVIDER_ID && where.isActive)
+          return Promise.resolve(mockProviderFromDb);
         if (where.id === OTHER_UID && where.isActive)
           return Promise.resolve(mockOtherUserFromDb);
         return Promise.resolve(null);
@@ -113,6 +125,7 @@ describe('Orders (integración)', () => {
 
     token = jwtService.sign({ user_id: USER_ID });
     otherToken = jwtService.sign({ user_id: OTHER_UID });
+    providerToken = jwtService.sign({ user_id: PROVIDER_ID });
   });
 
   afterAll(async () => {
@@ -124,6 +137,8 @@ describe('Orders (integración)', () => {
     mockUserRepo.findOne.mockImplementation(({ where }) => {
       if (where.id === USER_ID && where.isActive)
         return Promise.resolve(mockUserFromDb);
+      if (where.id === PROVIDER_ID && where.isActive)
+        return Promise.resolve(mockProviderFromDb);
       if (where.id === OTHER_UID && where.isActive)
         return Promise.resolve(mockOtherUserFromDb);
       return Promise.resolve(null);
@@ -345,6 +360,122 @@ describe('Orders (integración)', () => {
 
     it('401 — rechaza petición sin token', async () => {
       await request(app.getHttpServer()).get(`/orders/${ORDER_ID}`).expect(401);
+    });
+  });
+
+  describe('PATCH /orders/:orderId/status', () => {
+    it('200 — actualiza PENDING → PAID', async () => {
+      const order = makeOrder({ status: OrderStatus.PENDING });
+      const updated = makeOrder({ status: OrderStatus.PAID });
+      mockOrderRepo.findOne.mockResolvedValue(order);
+      mockOrderRepo.save.mockResolvedValue(updated);
+
+      const res = await request(app.getHttpServer())
+        .patch(`/orders/${ORDER_ID}/status`)
+        .set('Authorization', `Bearer ${providerToken}`)
+        .send({ status: OrderStatus.PAID })
+        .expect(200);
+
+      expect(res.body.status).toBe(OrderStatus.PAID);
+    });
+
+    it('200 — actualiza PAID → IN_PROGRESS', async () => {
+      const order = makeOrder({ status: OrderStatus.PAID });
+      const updated = makeOrder({ status: OrderStatus.IN_PROGRESS });
+      mockOrderRepo.findOne.mockResolvedValue(order);
+      mockOrderRepo.save.mockResolvedValue(updated);
+
+      const res = await request(app.getHttpServer())
+        .patch(`/orders/${ORDER_ID}/status`)
+        .set('Authorization', `Bearer ${providerToken}`)
+        .send({ status: OrderStatus.IN_PROGRESS })
+        .expect(200);
+
+      expect(res.body.status).toBe(OrderStatus.IN_PROGRESS);
+    });
+
+    it('200 — cancela una orden desde PENDING', async () => {
+      const order = makeOrder({ status: OrderStatus.PENDING });
+      const updated = makeOrder({ status: OrderStatus.CANCELLED });
+      mockOrderRepo.findOne.mockResolvedValue(order);
+      mockOrderRepo.save.mockResolvedValue(updated);
+
+      const res = await request(app.getHttpServer())
+        .patch(`/orders/${ORDER_ID}/status`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ status: OrderStatus.CANCELLED })
+        .expect(200);
+
+      expect(res.body.status).toBe(OrderStatus.CANCELLED);
+    });
+
+    it('400 — transición inválida PENDING → COMPLETED', async () => {
+      mockOrderRepo.findOne.mockResolvedValue(
+        makeOrder({ status: OrderStatus.PENDING }),
+      );
+
+      await request(app.getHttpServer())
+        .patch(`/orders/${ORDER_ID}/status`)
+        .set('Authorization', `Bearer ${providerToken}`)
+        .send({ status: OrderStatus.COMPLETED })
+        .expect(400);
+    });
+
+    it('400 — status con valor inválido', async () => {
+      await request(app.getHttpServer())
+        .patch(`/orders/${ORDER_ID}/status`)
+        .set('Authorization', `Bearer ${providerToken}`)
+        .send({ status: 'INVALID_STATUS' })
+        .expect(400);
+    });
+
+    it('400 — body sin el campo status', async () => {
+      await request(app.getHttpServer())
+        .patch(`/orders/${ORDER_ID}/status`)
+        .set('Authorization', `Bearer ${providerToken}`)
+        .send({})
+        .expect(400);
+    });
+
+    it('404 — orden no encontrada al actualizar', async () => {
+      mockOrderRepo.findOne.mockResolvedValue(null);
+
+      await request(app.getHttpServer())
+        .patch(`/orders/${ORDER_ID}/status`)
+        .set('Authorization', `Bearer ${providerToken}`)
+        .send({ status: OrderStatus.PAID })
+        .expect(404);
+    });
+
+    it('403 — la orden pertenece a otro usuario', async () => {
+      mockOrderRepo.findOne.mockResolvedValue(
+        makeOrder({ user: makeUser(OTHER_UID) }),
+      );
+
+      await request(app.getHttpServer())
+        .patch(`/orders/${ORDER_ID}/status`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ status: OrderStatus.PAID })
+        .expect(403);
+    });
+
+    it('403 — el cliente no puede avanzar el trabajo (PENDING → PAID)', async () => {
+      mockOrderRepo.findOne.mockResolvedValue(
+        makeOrder({ status: OrderStatus.PENDING }),
+      );
+
+      await request(app.getHttpServer())
+        .patch(`/orders/${ORDER_ID}/status`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ status: OrderStatus.PAID })
+        .expect(403);
+    });
+
+    it('401 — rechaza petición sin token', async () => {
+      await request(app.getHttpServer())
+        .patch(`/orders/${ORDER_ID}/status`)
+        .send({ status: OrderStatus.PAID })
+        .expect(401);
     });
   });
 });

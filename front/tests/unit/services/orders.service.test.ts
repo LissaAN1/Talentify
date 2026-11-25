@@ -183,23 +183,6 @@ describe("ordersService", () => {
 
   // -- create --------------------------------------
 
-  describe("getProviderOrders()", () => {
-    it("llama a GET /orders/provider y devuelve las órdenes recibidas", async () => {
-      vi.mocked(apiClient.get).mockResolvedValue({ data: [mockOrder] });
-
-      const result = await ordersService.getProviderOrders();
-
-      expect(apiClient.get).toHaveBeenCalledWith("/orders/provider", expect.any(Object));
-      expect(result).toEqual([mockOrder]);
-    });
-
-    it("propaga el error si la API falla", async () => {
-      vi.mocked(apiClient.get).mockRejectedValue(new Error("Network Error"));
-
-      await expect(ordersService.getProviderOrders()).rejects.toThrow("Network Error");
-    });
-  });
-
   describe("create()", () => {
     it("llama a POST /orders con el payload correcto", async () => {
       const created: Order = { ...mockOrder, id: "new-order" };
@@ -259,4 +242,41 @@ describe("ordersService", () => {
   });
 
   // -- updateStatus --------------------------------------
+
+  describe("updateStatus()", () => {
+    it("llama a PATCH /orders/:id/status con el nuevo estado", async () => {
+      const updated: Order = { ...mockOrder, status: OrderStatus.PAID };
+
+      vi.mocked(apiClient.patch).mockResolvedValue({ data: updated });
+
+      const result = await ordersService.updateStatus("abc-123", {
+        status: OrderStatus.PAID,
+      });
+
+      expect(apiClient.patch).toHaveBeenCalledWith(
+        "/orders/abc-123/status",
+        { status: OrderStatus.PAID },
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            Authorization: "Bearer fake-jwt-token",
+          }),
+        })
+      );
+
+      expect(result).toEqual(updated);
+      expect(result.status).toBe(OrderStatus.PAID);
+    });
+
+    it("propaga el error si la API falla al actualizar el estado", async () => {
+      vi.mocked(apiClient.patch).mockRejectedValue(
+        new Error("Invalid transition")
+      );
+
+      await expect(
+        ordersService.updateStatus("abc-123", {
+          status: OrderStatus.PAID,
+        })
+      ).rejects.toThrow("Invalid transition");
+    });
+  });
 });

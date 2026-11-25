@@ -12,6 +12,7 @@ import { OrdersService } from './orders.service';
 import { Order, OrderStatus } from './entities/order.entity';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
+import { AppRoles } from '../auth/interfaces/app-roles';
 import { User } from '../users/entities/user.entity';
 import { Service } from '../services/entities/service.entity';
 
@@ -20,6 +21,7 @@ const USER_ID = '1';
 const OTHER_UID = '999';
 const ORDER_ID = '2';
 const SERVICE_ID = '3';
+const CLIENT_USER = { id: USER_ID, roles: [AppRoles.CLIENT] };
 
 function makeUser(id: string = USER_ID): User {
   const user = new User();
@@ -30,6 +32,7 @@ function makeUser(id: string = USER_ID): User {
 function makeService(id: string = SERVICE_ID): Service {
   const service = new Service();
   service.id = id;
+  service.provider = makeUser('provider-1');
   return service;
 }
 
@@ -137,7 +140,7 @@ describe('OrdersService', () => {
     it('debe retornar la orden cuando existe y pertenece al usuario', async () => {
       repo.findOne.mockResolvedValue(makeOrder());
 
-      const result = await service.getById(ORDER_ID, USER_ID);
+      const result = await service.getById(ORDER_ID, CLIENT_USER);
 
       expect(repo.findOne).toHaveBeenCalledWith({
         where: { id: ORDER_ID },
@@ -149,7 +152,7 @@ describe('OrdersService', () => {
     it('debe lanzar NotFoundException cuando la orden no existe', async () => {
       repo.findOne.mockResolvedValue(null);
 
-      await expect(service.getById(ORDER_ID, USER_ID)).rejects.toThrow(
+      await expect(service.getById(ORDER_ID, CLIENT_USER)).rejects.toThrow(
         NotFoundException,
       );
     });
@@ -157,7 +160,7 @@ describe('OrdersService', () => {
     it('debe lanzar ForbiddenException cuando la orden pertenece a otro usuario', async () => {
       repo.findOne.mockResolvedValue(makeOrder({ user: makeUser(OTHER_UID) }));
 
-      await expect(service.getById(ORDER_ID, USER_ID)).rejects.toThrow(
+      await expect(service.getById(ORDER_ID, CLIENT_USER)).rejects.toThrow(
         ForbiddenException,
       );
     });

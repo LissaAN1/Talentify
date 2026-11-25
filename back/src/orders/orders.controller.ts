@@ -4,6 +4,7 @@ import {
   Get,
   Param,
   ParseUUIDPipe,
+  Patch,
   Post,
   UseGuards,
 } from '@nestjs/common';
@@ -18,6 +19,7 @@ import {
 
 import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
+import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { GetUser } from '../auth/decorators/user.decorator';
 import type { Order } from './entities/order.entity';
@@ -83,6 +85,33 @@ export class OrdersController {
     @Param('orderId', ParseUUIDPipe) orderId: string,
     @GetUser() user: any,
   ): Promise<Order> {
-    return this.ordersService.getById(orderId, user.id);
+    return this.ordersService.getById(orderId, user);
+  }
+
+  @Patch(':orderId/status')
+  @ApiOperation({
+    summary: 'Actualizar estado de una orden',
+    description:
+      'Transiciones permitidas: PENDING→PAID, PAID→IN_PROGRESS, IN_PROGRESS→COMPLETED. ' +
+      'Cualquier estado puede cancelarse (→CANCELLED). COMPLETED y CANCELLED son estados finales.',
+  })
+  @ApiParam({
+    name: 'orderId',
+    description: 'UUID de la orden',
+    type: 'string',
+  })
+  @ApiResponse({ status: 200, description: 'Estado actualizado.' })
+  @ApiResponse({ status: 400, description: 'Transición de estado inválida.' })
+  @ApiResponse({
+    status: 403,
+    description: 'La orden pertenece a otro usuario.',
+  })
+  @ApiResponse({ status: 404, description: 'Orden no encontrada.' })
+  updateStatus(
+    @Param('orderId', ParseUUIDPipe) orderId: string,
+    @GetUser() user: any,
+    @Body() updateOrderStatusDto: UpdateOrderStatusDto,
+  ): Promise<Order> {
+    return this.ordersService.updateStatus(orderId, user, updateOrderStatusDto);
   }
 }
