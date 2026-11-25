@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from './auth/auth.module';
 import { OrdersModule } from './orders/orders.module';
+import { ReportsModule } from './reports/reports.module';
 import { PaymentsModule } from './payments/payments.module';
 import { RatingsModule } from './ratings/ratings.module';
 import { SeedModule } from './seed/seed.module';
@@ -30,6 +31,7 @@ import { AppService } from './app.service.js';
     AuthModule,
     ServicesModule,
     OrdersModule,
+    ReportsModule,
     PaymentsModule,
     RatingsModule,
     SeedModule,

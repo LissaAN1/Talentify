@@ -27,6 +27,10 @@ export const protectedRouteRules: ProtectedRouteRule[] = [
         roles: [AppRoles.ADMIN, AppRoles.PROVIDER],
     },
     {
+        path: "/reports",
+        roles: [AppRoles.ADMIN, AppRoles.PROVIDER],
+    },
+    {
         path: "/users",
         roles: [AppRoles.ADMIN],
     },

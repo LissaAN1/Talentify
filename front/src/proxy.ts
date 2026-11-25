@@ -4,7 +4,7 @@ import type { NextRequest } from 'next/server';
 
 const publicRoutes = ['/login', '/register', '/forgot-password'];
 
-const protectedRoutes = ['/dashboard', '/marketplace', '/profile', '/orders', '/services', '/users'];
+const protectedRoutes = ['/dashboard', '/marketplace', '/profile', '/orders', '/services', '/users', '/reports'];
 
 const apiRoutes = ['/api'];
 
