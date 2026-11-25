@@ -1,10 +1,12 @@
 import { expect, test, type Page } from "@playwright/test";
 
+import { OrderStatus } from "@/interfaces/order";
 import { loginAs } from "./helpers/auth";
 import {
+    completedOrder,
     mockOrdersApi,
-    pendingOrder,
     mockService,
+    pendingOrder,
 } from "./helpers/orders-mock";
 
 const serviceSelect = (page: Page) => page.locator('select[name="serviceId"]');
@@ -83,6 +85,76 @@ test.describe("Orders", () => {
 
         await expect(page.getByText("No se pudo cargar la orden")).toBeVisible();
         await expect(page.getByText("No tienes permiso para ver esta orden.")).toBeVisible();
+    });
+
+    test("actualiza el estado de una orden cuando el proveedor confirma", async ({ page, context, baseURL }) => {
+        await loginAs(context, "PROVIDER", baseURL!);
+
+        const api = await mockOrdersApi(page);
+
+        await page.goto(`/orders/${pendingOrder.id}`);
+
+        page.once("dialog", async (dialog) => {
+            await dialog.accept();
+        });
+
+        await page.getByRole("button", { name: "Aceptar pedido" }).click();
+
+        await expect(page.getByText("Pagada").first()).toBeVisible();
+
+        expect(api.requests.statusUpdates).toHaveLength(1);
+        expect(api.requests.statusUpdates[0]).toMatchObject({
+            orderId: pendingOrder.id,
+            payload: {
+                status: OrderStatus.PAID,
+            },
+        });
+    });
+
+    test("no actualiza el estado si el usuario cancela la confirmación", async ({ page }) => {
+        const api = await mockOrdersApi(page);
+
+        await page.goto(`/orders/${pendingOrder.id}`);
+
+        page.once("dialog", async (dialog) => {
+            await dialog.dismiss();
+        });
+
+        await page.getByRole("button", { name: "Cancelar orden" }).click();
+
+        await expect(page.getByText("Pendiente").first()).toBeVisible();
+        expect(api.requests.statusUpdates).toHaveLength(0);
+    });
+
+    test("muestra error si el backend rechaza el cambio de estado", async ({ page, context, baseURL }) => {
+        await loginAs(context, "PROVIDER", baseURL!);
+
+        await mockOrdersApi(page, {
+            updateError: true,
+        });
+
+        await page.goto(`/orders/${pendingOrder.id}`);
+
+        page.once("dialog", async (dialog) => {
+            await dialog.accept();
+        });
+
+        await page.getByRole("button", { name: "Aceptar pedido" }).click();
+
+        await expect(page.getByText("Transición no permitida.")).toBeVisible();
+    });
+
+    test("no muestra acciones si la orden está en estado final", async ({ page }) => {
+        await mockOrdersApi(page);
+
+        await page.goto(`/orders/${completedOrder.id}`);
+
+        await expect(page.getByText("Completada").first()).toBeVisible();
+        await expect(page.getByText("Acciones disponibles")).toBeVisible();
+
+        await expect(page.getByRole("button", { name: "Pagada" })).toHaveCount(0);
+        await expect(page.getByRole("button", { name: "En progreso" })).toHaveCount(0);
+        await expect(page.getByRole("button", { name: "Cancelada" })).toHaveCount(0);
     });
 
     test("muestra el formulario de nueva orden", async ({ page }) => {
