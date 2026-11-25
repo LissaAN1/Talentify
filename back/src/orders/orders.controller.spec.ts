@@ -144,13 +144,13 @@ describe('OrdersController', () => {
 
   //getById
   describe('getById()', () => {
-    it('debe llamar a service.getById con orderId y userId', async () => {
+    it('debe llamar a service.getById con orderId y el usuario', async () => {
       const order = makeOrder();
       service.getById.mockResolvedValue(order);
 
       const result = await controller.getById(ORDER_ID, MOCK_USER);
 
-      expect(service.getById).toHaveBeenCalledWith(ORDER_ID, USER_ID);
+      expect(service.getById).toHaveBeenCalledWith(ORDER_ID, MOCK_USER);
       expect(result).toEqual(order);
     });
 
