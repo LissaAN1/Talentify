@@ -49,4 +49,13 @@ export const ordersService = {
     });
     return data;
   },
+
+  //GET /orders/provider
+  //Devuelve las órdenes asociadas a los servicios del proveedor autenticado.
+  async getProviderOrders(): Promise<Order[]> {
+    const { data } = await apiClient.get<Order[]>("/orders/provider", {
+      headers: getAuthHeader(),
+    });
+    return data;
+  },
 };
