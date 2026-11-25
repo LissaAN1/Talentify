@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Bell, BriefcaseBusiness, ClipboardList, LayoutDashboard, LogOut, Search, UserRound, Users } from "lucide-react";
+import { BarChart3, Bell, BriefcaseBusiness, ClipboardList, LayoutDashboard, LogOut, Search, UserRound, Users } from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
 import { ActiveLink } from "@/components/navigation/ActiveLink";
@@ -13,6 +13,7 @@ const navItems = [
     { href: "/marketplace", label: "Marketplace", icon: Search, roles: [AppRoles.ADMIN, AppRoles.PROVIDER, AppRoles.CLIENT] },
     { href: "/services", label: "Servicios", icon: BriefcaseBusiness, roles: [AppRoles.ADMIN, AppRoles.PROVIDER] },
     { href: "/orders", label: "Órdenes", icon: ClipboardList, roles: [AppRoles.ADMIN, AppRoles.PROVIDER, AppRoles.CLIENT] },
+    { href: "/reports", label: "Reportes", icon: BarChart3, roles: [AppRoles.ADMIN, AppRoles.PROVIDER] },
     { href: "/users", label: "Usuarios", icon: Users, roles: [AppRoles.ADMIN] },
     { href: "/profile", label: "Perfil", icon: UserRound, roles: [AppRoles.ADMIN, AppRoles.PROVIDER, AppRoles.CLIENT] },
 ]
