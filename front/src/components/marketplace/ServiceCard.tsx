@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { Star, UserRound } from "lucide-react";
+import { UserRound } from "lucide-react";
 
 import { Badge } from "@/components/ui/Badge";
+import { ProviderRating } from "@/components/services/ProviderRating";
 import { Service } from "@/interfaces/service";
 import { formatCurrencyCOP } from "@/lib/format";
 
@@ -32,10 +33,7 @@ export function ServiceCard({ service }: ServiceCardProps) {
                         <p className="text-sm font-black text-slate-950">
                             {service.provider?.name ?? "Proveedor Talentify"}
                         </p>
-                        <p className="flex items-center gap-1 text-xs font-bold text-slate-500">
-                            <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-                            4.8 · Verificado
-                        </p>
+                        {service.provider && <ProviderRating providerId={service.provider.id} />}
                     </div>
                 </div>
 

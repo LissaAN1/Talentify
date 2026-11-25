@@ -14,10 +14,11 @@ import { Alert } from "@/components/ui/Alert";
 import { OrderStatusBadge } from "@/components/orders/OrderStatusBadge";
 import { OrderActions } from "@/components/orders/OrderActions";
 import { PayOrderButton } from "@/components/orders/PayOrderButton";
+import { RatingForm } from "@/components/orders/RatingForm";
 
 import { useAuth } from "@/hooks/useAuth";
 import { ordersService } from "@/services/orders.service";
-import type { Order } from "@/interfaces/order";
+import { OrderStatus, type Order } from "@/interfaces/order";
 import { formatCurrencyCOP, formatDate } from "@/lib/format";
 
 export default function OrderDetailPage() {
@@ -181,6 +182,15 @@ export default function OrderDetailPage() {
                 Pago
               </h2>
               <PayOrderButton orderId={order.id} status={order.status} />
+            </Card>
+          )}
+
+          {actionMode === "client" && order.status === OrderStatus.COMPLETED && (
+            <Card>
+              <h2 className="mb-4 text-sm font-black uppercase tracking-widest text-slate-500">
+                Califica el servicio
+              </h2>
+              <RatingForm orderId={order.id} status={order.status} />
             </Card>
           )}
 
