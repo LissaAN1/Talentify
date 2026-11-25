@@ -1,6 +1,6 @@
 import { apiClient } from "@/services/api-client";
 import { AppRoles } from "@/constants/app-roles";
-import { Login2FAResponse, LoginResponse, ProfileResponse } from "@/interfaces/auth";
+import { Login2FAResponse, LoginResponse, ProfileResponse, TwoFactorEnableResponse, TwoFactorQRResponse, Verify2FADto } from "@/interfaces/auth";
 import { CreateUserDto, User } from "@/interfaces/user";
 
 class AuthService {
@@ -44,6 +44,23 @@ class AuthService {
 
     async getMarketplace(): Promise<{ mensaje: string; roles: AppRoles[] }> {
         const response = await apiClient.get<{ mensaje: string; roles: AppRoles[] }>("/auth/marketplace");
+        return response.data;
+    }
+    // 2FA
+    async generate2FAQR(): Promise<TwoFactorQRResponse> {
+        const response = await apiClient.get<TwoFactorQRResponse>("/auth/2fa/generar");
+        return response.data;
+    }
+
+    async enable2FA(verify2faDto: Verify2FADto): Promise<TwoFactorEnableResponse> {
+        const response = await apiClient.post<TwoFactorEnableResponse>("/auth/2fa/habilitar", verify2faDto);
+        return response.data;
+    }
+
+    async verify2FA(verify2faDto: Verify2FADto, partialToken: string): Promise<LoginResponse> {
+        const response = await apiClient.post<LoginResponse>("/auth/2fa/verificar", verify2faDto, {
+            headers: { Authorization: `Bearer ${partialToken}` },
+        });
         return response.data;
     }
 }
