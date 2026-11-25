@@ -4,7 +4,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Card } from "@/components/ui/Card";
@@ -13,6 +13,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { Alert } from "@/components/ui/Alert";
 import { OrderStatusBadge } from "@/components/orders/OrderStatusBadge";
 import { OrderActions } from "@/components/orders/OrderActions";
+import { PayOrderButton } from "@/components/orders/PayOrderButton";
 
 import { useAuth } from "@/hooks/useAuth";
 import { ordersService } from "@/services/orders.service";
@@ -23,6 +24,9 @@ export default function OrderDetailPage() {
   const { id } = useParams<{ id: string }>();
 
   const router = useRouter();
+
+  const searchParams = useSearchParams();
+  const paymentResult = searchParams.get("payment");
 
   const { user, isAdmin, isProvider } = useAuth();
 
@@ -157,6 +161,26 @@ export default function OrderDetailPage() {
                 Notas
               </h2>
               <p className="text-sm leading-7 text-slate-700">{order.notes}</p>
+            </Card>
+          )}
+
+          {paymentResult === "success" && (
+            <Alert
+              variant="success"
+              title="Pago recibido"
+              message="Stripe confirmó el pago. Si la orden aún aparece como pendiente, recarga la página en unos segundos."
+            />
+          )}
+          {paymentResult === "cancelled" && (
+            <Alert variant="warning" title="Pago cancelado" message="No se realizó ningún cobro." />
+          )}
+
+          {actionMode === "client" && (
+            <Card>
+              <h2 className="mb-4 text-sm font-black uppercase tracking-widest text-slate-500">
+                Pago
+              </h2>
+              <PayOrderButton orderId={order.id} status={order.status} />
             </Card>
           )}
 
