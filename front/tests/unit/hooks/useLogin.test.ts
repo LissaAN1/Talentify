@@ -22,7 +22,7 @@ const cookiesMock = vi.hoisted(() => ({
 }));
 
 vi.mock("@/providers/user-store-provider", () => ({
-    useUserStore: (selector: any) =>
+    useUserStore: (selector: (state: Record<string, unknown>) => unknown) =>
         selector({
             id: "",
             name: "",

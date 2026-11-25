@@ -12,7 +12,9 @@ import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Alert } from "@/components/ui/Alert";
 import { OrderStatusBadge } from "@/components/orders/OrderStatusBadge";
+import { OrderActions } from "@/components/orders/OrderActions";
 
+import { useAuth } from "@/hooks/useAuth";
 import { ordersService } from "@/services/orders.service";
 import type { Order } from "@/interfaces/order";
 import { formatCurrencyCOP, formatDate } from "@/lib/format";
@@ -21,6 +23,8 @@ export default function OrderDetailPage() {
   const { id } = useParams<{ id: string }>();
 
   const router = useRouter();
+
+  const { user, isAdmin, isProvider } = useAuth();
 
   //Orden cargada; null mientras carga o si hubo error.
   const [order, setOrder] = useState<Order | null>(null);
@@ -54,32 +58,11 @@ export default function OrderDetailPage() {
     fetchOrder();
   }, [id]);
 
-  //Carga la orden por ID al montar el componente.
-  useEffect(() => {
-    if (!id) return;
-
-    async function fetchOrder() {
-      try {
-        const data = await ordersService.getById(id);
-        setOrder(data);
-      } catch (err: unknown) {
-        const status = (err as { response?: { status?: number } })?.response?.status;
-
-        //Mensajes diferenciados según el código HTTP del backend.
-        if (status === 403) {
-          setError("No tienes permiso para ver esta orden.");
-        } else if (status === 404) {
-          setError("Orden no encontrada.");
-        } else {
-          setError("No se pudo cargar la orden. Intenta de nuevo.");
-        }
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchOrder();
-  }, [id]);
+  //Callback que recibe la orden actualizada desde OrderActions.
+  //Actualiza el estado local para reflejar el nuevo estado sin necesidad de recargar la página (optimistic-like update).
+  function handleStatusChanged(updatedOrder: Order) {
+    setOrder(updatedOrder);
+  }
 
   //Carga
 
@@ -113,6 +96,16 @@ export default function OrderDetailPage() {
       </div>
     );
   }
+
+  const isProviderOfOrder =
+      Boolean(user?.id) && order.service?.provider?.id === user?.id;
+
+  const actionMode =
+      isAdmin()
+          ? "admin"
+          : isProvider() && isProviderOfOrder
+            ? "provider"
+            : "client";
 
   //Detalle de la orden
 
@@ -166,6 +159,14 @@ export default function OrderDetailPage() {
               <p className="text-sm leading-7 text-slate-700">{order.notes}</p>
             </Card>
           )}
+
+          {/* Acciones disponibles para cambiar el estado */}
+          <Card>
+            <h2 className="mb-4 text-sm font-black uppercase tracking-widest text-slate-500">
+              Acciones disponibles
+            </h2>
+            <OrderActions order={order} onStatusChanged={handleStatusChanged} mode={actionMode}/>
+          </Card>
         </div>
 
         {/* Panel lateral: resumen financiero y metadatos */}
