@@ -13,17 +13,22 @@ import { Order, OrderStatus } from '../orders/entities/order.entity';
 
 @Injectable()
 export class PaymentsService {
-  private readonly stripe: Stripe;
+  private stripeClient?: Stripe;
 
   constructor(
     private readonly configService: ConfigService,
     @InjectRepository(Order)
     private readonly orderRepository: Repository<Order>,
-  ) {
+  ) {}
+
+  // El cliente de Stripe se crea al primer uso: así la aplicación (y sus
+  // pruebas) arranca aunque STRIPE_SECRET_KEY no esté definida.
+  private get stripe(): Stripe {
     // Clave de pruebas (sk_test_...) de la cuenta sandbox de Stripe
-    this.stripe = new Stripe(
+    this.stripeClient ??= new Stripe(
       this.configService.getOrThrow<string>('STRIPE_SECRET_KEY'),
     );
+    return this.stripeClient;
   }
 
   // Crea la sesión de pago de Stripe Checkout para una orden PENDING
