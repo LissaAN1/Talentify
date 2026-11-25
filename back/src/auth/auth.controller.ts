@@ -20,6 +20,7 @@ import { Auth } from './decorators/auth.decorator';
 import { GetUser } from './decorators/user.decorator';
 import { LoginUserDto } from './dto/login-user.dto';
 import { AppRoles } from './interfaces/app-roles';
+import { Verify2faDto } from './dto/verify-2fa.dto';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -30,10 +31,14 @@ export class AuthController {
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
     summary: 'Registrar nuevo usuario',
-    description: 'Crea una cuenta con rol CLIENT. Acepta correos de cualquier dominio.',
+    description:
+      'Crea una cuenta con rol CLIENT. El correo debe ser institucional (@u.icesi.edu.co).',
   })
   @ApiResponse({ status: 201, description: 'Usuario creado exitosamente.' })
-  @ApiResponse({ status: 400, description: 'Datos inválidos.' })
+  @ApiResponse({
+    status: 400,
+    description: 'Datos inválidos o correo no institucional.',
+  })
   @ApiResponse({ status: 409, description: 'El correo ya está registrado.' })
   registrar(@Body() createUserDto: CreateUserDto) {
     return this.authService.createUser(createUserDto);
@@ -73,20 +78,6 @@ export class AuthController {
       mensaje: 'Perfil obtenido correctamente',
       usuario: user,
     };
-  }
-
-  @Post('logout')
-  @Auth()
-  @HttpCode(HttpStatus.CREATED)
-  @ApiBearerAuth('JWT')
-  @ApiOperation({
-    summary: 'Cerrar sesión',
-    description: 'Invalida la sesión del usuario autenticado.',
-  })
-  @ApiResponse({ status: 201, description: 'Sesión cerrada correctamente.' })
-  @ApiResponse({ status: 401, description: 'Token inválido o ausente.' })
-  logout(@GetUser() user: Omit<User, 'password'>) {
-    return this.authService.logout(user.id);
   }
 
   @Get('provider/dashboard')
@@ -138,5 +129,75 @@ export class AuthController {
       mensaje: 'Marketplace disponible',
       roles: user.roles,
     };
+  }
+
+  @Post('logout')
+  @Auth()
+  @HttpCode(HttpStatus.CREATED)
+  @ApiBearerAuth('JWT')
+  @ApiOperation({
+    summary: 'Cerrar sesión',
+    description: 'Invalida la sesión del usuario autenticado.',
+  })
+  @ApiResponse({ status: 201, description: 'Sesión cerrada correctamente.' })
+  @ApiResponse({ status: 401, description: 'Token inválido o ausente.' })
+  logout(@GetUser() user: Omit<User, 'password'>) {
+    return this.authService.logout(user.id);
+  }
+
+  @Get('2fa/generar')
+  @Auth() // requiere JWT válido (el usuario ya inició sesión normalmente)
+  @ApiBearerAuth('JWT')
+  @ApiOperation({
+    summary: 'Generar QR para 2FA',
+    description:
+      'Genera un secret TOTP y retorna un QR en base64 para escanear con una app de autenticación (Google Authenticator, Authy, etc.).',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'QR generado — retorna `{ qrCode: string }` en base64.',
+  })
+  @ApiResponse({ status: 401, description: 'Token inválido o ausente.' })
+  generar2fa(@GetUser() user: Omit<User, 'password'>) {
+    return this.authService.generar2faSecret(user);
+  }
+
+  @Post('2fa/habilitar')
+  @Auth() // requiere JWT válido; el usuario ya escaneó el QR y envía su primer código
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth('JWT')
+  @ApiOperation({
+    summary: 'Habilitar 2FA',
+    description:
+      'Activa el 2FA para el usuario validando el primer código TOTP generado por la app de autenticación.',
+  })
+  @ApiResponse({ status: 200, description: '2FA habilitado correctamente.' })
+  @ApiResponse({ status: 401, description: 'Código 2FA inválido.' })
+  habilitar2fa(
+    @GetUser() user: Omit<User, 'password'>,
+    @Body() body: Verify2faDto,
+  ) {
+    return this.authService.habilitar2fa(user, body.token);
+  }
+
+  @Post('2fa/verificar')
+  @Auth() // requiere el partialToken recibido en el login
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth('JWT')
+  @ApiOperation({
+    summary: 'Verificar código 2FA en el login',
+    description:
+      'Segundo paso del login cuando 2FA está activo. Enviar el partialToken en el header y el código TOTP en el body.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Verificación exitosa — retorna JWT completo.',
+  })
+  @ApiResponse({ status: 401, description: 'Código 2FA inválido.' })
+  verificar2fa(
+    @GetUser() user: Omit<User, 'password'>,
+    @Body() body: Verify2faDto,
+  ) {
+    return this.authService.verificar2fa(user, body.token);
   }
 }
