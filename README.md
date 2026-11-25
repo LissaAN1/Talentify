@@ -44,8 +44,8 @@ de la API y la URL de la API en `NEXT_PUBLIC_API_URL` del frontend, y volver a d
 
 | Recurso | URL pública |
 |---|---|
-| API | _pendiente de desplegar en Render_ |
-| Swagger | _`<URL de la API>/api/docs`_ |
-| Frontend | _pendiente de desplegar en Render_ |
+| API | https://talentify-api-58gy.onrender.com |
+| Swagger | https://talentify-api-58gy.onrender.com/api/docs |
+| Frontend | https://talentify-web.onrender.com |
 
 Nunca se suben `.env` ni llaves reales: solo variables de entorno en el panel de Render.
