@@ -6,6 +6,7 @@ import { apiClient } from "./api-client";
 import type {
   Order,
   CreateOrderPayload,
+  UpdateOrderStatusPayload,
 } from "@/interfaces/order";
 
 //Helpers internos
@@ -50,12 +51,26 @@ export const ordersService = {
     return data;
   },
 
-  //GET /orders/provider
-  //Devuelve las órdenes asociadas a los servicios del proveedor autenticado.
   async getProviderOrders(): Promise<Order[]> {
     const { data } = await apiClient.get<Order[]>("/orders/provider", {
       headers: getAuthHeader(),
     });
+    return data;
+  },
+  
+  //PATCH /orders/:orderId/status
+  //Actualiza el estado de una orden según las transiciones permitidas
+  //(PENDING→PAID, PAID→IN_PROGRESS, IN_PROGRESS→COMPLETED, cualquiera→CANCELLED).
+  //El backend lanza 400 si la transición no es válida.
+  async updateStatus(
+    orderId: string,
+    payload: UpdateOrderStatusPayload
+  ): Promise<Order> {
+    const { data } = await apiClient.patch<Order>(
+      `/orders/${orderId}/status`,
+      payload,
+      { headers: getAuthHeader() }
+    );
     return data;
   },
 };
