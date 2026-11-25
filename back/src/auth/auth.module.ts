@@ -10,6 +10,7 @@ import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { UserRoleGuard } from './guards/user-role.guard';
 import { JwtStrategy } from './strategies/jwt.strategy';
+import { TwoFactorAuthService } from './two-factor-auth.service';
 
 @Module({
   imports: [
@@ -29,7 +30,7 @@ import { JwtStrategy } from './strategies/jwt.strategy';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, UserRoleGuard],
+  providers: [AuthService, JwtStrategy, UserRoleGuard, TwoFactorAuthService],
   exports: [AuthService, TypeOrmModule, JwtModule, PassportModule],
 })
 export class AuthModule {}
