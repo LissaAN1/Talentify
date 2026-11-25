@@ -12,7 +12,7 @@ services:
     runtime: node
     rootDir: back
     plan: free
-    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm build
+    buildCommand: npx -y pnpm@10.30.3 install --frozen-lockfile && npx -y pnpm@10.30.3 build
     startCommand: node dist/main
     healthCheckPath: /
     envVars:
@@ -36,8 +36,8 @@ services:
     runtime: node
     rootDir: front
     plan: free
-    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm build
-    startCommand: pnpm start
+    buildCommand: npx -y pnpm@10.30.3 install --frozen-lockfile && npx -y pnpm@10.30.3 build
+    startCommand: npx -y pnpm@10.30.3 start
     envVars:
       - key: NEXT_PUBLIC_API_URL
         sync: false # URL pública de la API, se define en el panel de Render
