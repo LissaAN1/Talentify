@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -7,8 +8,18 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Order, OrderStatus } from './entities/order.entity';
 import { CreateOrderDto } from './dto/create-order.dto';
+import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { User } from '../users/entities/user.entity';
 import { Service } from '../services/entities/service.entity';
+import { AppRoles } from '../auth/interfaces/app-roles';
+
+const ALLOWED_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
+  [OrderStatus.PENDING]: [OrderStatus.PAID, OrderStatus.CANCELLED],
+  [OrderStatus.PAID]: [OrderStatus.IN_PROGRESS, OrderStatus.CANCELLED],
+  [OrderStatus.IN_PROGRESS]: [OrderStatus.COMPLETED, OrderStatus.CANCELLED],
+  [OrderStatus.COMPLETED]: [],
+  [OrderStatus.CANCELLED]: [],
+};
 
 @Injectable()
 export class OrdersService {
@@ -37,7 +48,11 @@ export class OrdersService {
     });
   }
 
-  async getById(orderId: string, userId: string): Promise<Order> {
+  // Pueden ver la orden: el cliente que la creó, el proveedor del servicio y el administrador
+  async getById(
+    orderId: string,
+    user: Pick<User, 'id' | 'roles'>,
+  ): Promise<Order> {
     const order: Order | null = await this.orderRepository.findOne({
       where: { id: orderId },
       relations: { user: true, service: { provider: true } },
@@ -46,12 +61,45 @@ export class OrdersService {
     if (order == null)
       throw new NotFoundException(`Orden con id ${orderId} no encontrada`);
 
-    if (order.user.id !== userId)
+    const isClient = order.user.id === user.id;
+    const isProvider = order.service.provider.id === user.id;
+    const isAdmin = user.roles.includes(AppRoles.ADMIN);
+
+    if (!isClient && !isProvider && !isAdmin)
       throw new ForbiddenException(
         `No tienes permiso para acceder a esta orden`,
       );
 
     return order;
+  }
+
+  async updateStatus(
+    orderId: string,
+    user: Pick<User, 'id' | 'roles'>,
+    updateOrderStatusDto: UpdateOrderStatusDto,
+  ): Promise<Order> {
+    const order = await this.getById(orderId, user);
+
+    const { status: newStatus } = updateOrderStatusDto;
+    const allowedNext = ALLOWED_TRANSITIONS[order.status];
+
+    if (!allowedNext.includes(newStatus))
+      throw new BadRequestException(
+        `No se puede cambiar el estado de '${order.status}' a '${newStatus}'. ` +
+          `Transiciones permitidas: ${allowedNext.length ? allowedNext.join(', ') : 'ninguna'}`,
+      );
+
+    // El cliente solo puede cancelar; avanzar el trabajo es del proveedor (o del administrador)
+    const isOnlyClient =
+      order.user.id === user.id &&
+      order.service.provider.id !== user.id &&
+      !user.roles.includes(AppRoles.ADMIN);
+
+    if (isOnlyClient && newStatus !== OrderStatus.CANCELLED)
+      throw new ForbiddenException('El cliente solo puede cancelar la orden');
+
+    order.status = newStatus;
+    return this.orderRepository.save(order);
   }
 
   getByProvider(providerId: string): Promise<Order[]> {
