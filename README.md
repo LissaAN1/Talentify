@@ -49,3 +49,22 @@ de la API y la URL de la API en `NEXT_PUBLIC_API_URL` del frontend, y volver a d
 | Frontend | https://talentify-web.onrender.com |
 
 Nunca se suben `.env` ni llaves reales: solo variables de entorno en el panel de Render.
+
+## Guía para la sustentación
+
+Usuarios de demostración (los crea el seed de la API):
+
+| Rol | Correo | Contraseña |
+|---|---|---|
+| Administrador | `admin@u.icesi.edu.co` | `Admin12345` |
+| Proveedor | `provider@u.icesi.edu.co` | `Provider12345` |
+| Cliente | `client@u.icesi.edu.co` | `Client12345` |
+
+Pagos con Stripe (modo de prueba): `STRIPE_SECRET_KEY` y `STRIPE_WEBHOOK_SECRET` se configuran solo en las
+variables de entorno de la API en Render. El webhook apunta a `<URL de la API>/payments/webhook` y escucha
+`checkout.session.completed`. Para probar un pago, entra como cliente, abre una orden en estado PENDING y pulsa
+**Pagar con Stripe**; usa la tarjeta `4242 4242 4242 4242`, cualquier fecha futura y cualquier CVC. Al volver, la
+orden pasa a PAID gracias al webhook.
+
+Nota sobre el plan gratuito de Render: la API y el frontend se duermen tras unos minutos sin tráfico y la primera
+petición puede tardar cerca de 50 segundos. Conviene abrir ambas URLs unos minutos antes de presentar.
