@@ -49,7 +49,9 @@ describe('OrdersController', () => {
 
   const mockService: Record<string, Mock> = {
     create: vi.fn(),
+    getAll: vi.fn(),
     getById: vi.fn(),
+    getByProvider: vi.fn(),
   };
 
   beforeEach(async () => {
@@ -94,6 +96,49 @@ describe('OrdersController', () => {
       const result = await controller.create(MOCK_USER, dto);
 
       expect(result.status).toBe(OrderStatus.PENDING);
+    });
+  });
+
+  //getAll
+  describe('getAll()', () => {
+    it('debe llamar a service.getAll con el userId del token', async () => {
+      const orders = [makeOrder(), makeOrder({ id: 'order-uuid-002' })];
+      service.getAll.mockResolvedValue(orders);
+
+      const result = await controller.getAll(MOCK_USER);
+
+      expect(service.getAll).toHaveBeenCalledWith(USER_ID);
+      expect(result).toHaveLength(2);
+    });
+
+    it('debe retornar arreglo vacío si no hay órdenes', async () => {
+      service.getAll.mockResolvedValue([]);
+
+      const result = await controller.getAll(MOCK_USER);
+
+      expect(result).toEqual([]);
+    });
+  });
+
+  // getProviderOrders
+  describe('getProviderOrders()', () => {
+    it('debe llamar a service.getByProvider con el userId del token', async () => {
+      const orders = [makeOrder(), makeOrder({ id: 'order-uuid-002' })];
+
+      service.getByProvider.mockResolvedValue(orders);
+
+      const result = await controller.getProviderOrders(MOCK_USER);
+
+      expect(service.getByProvider).toHaveBeenCalledWith(USER_ID);
+      expect(result).toHaveLength(2);
+    });
+
+    it('debe retornar arreglo vacío si el proveedor no tiene órdenes recibidas', async () => {
+      service.getByProvider.mockResolvedValue([]);
+
+      const result = await controller.getProviderOrders(MOCK_USER);
+
+      expect(result).toEqual([]);
     });
   });
 

@@ -209,6 +209,100 @@ describe('Orders (integración)', () => {
     });
   });
 
+  describe('GET /orders', () => {
+    it('200 — retorna todas las órdenes del usuario autenticado', async () => {
+      const orders = [
+        makeOrder(),
+        makeOrder({ id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a55' }),
+      ];
+      mockOrderRepo.find.mockResolvedValue(orders);
+
+      const res = await request(app.getHttpServer())
+        .get('/orders')
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200);
+
+      expect(Array.isArray(res.body)).toBe(true);
+      expect(res.body).toHaveLength(2);
+      expect(mockOrderRepo.find).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { user: { id: USER_ID } },
+          relations: { user: true, service: { provider: true } },
+        }),
+      );
+    });
+
+    it('200 — retorna arreglo vacío si el usuario no tiene órdenes', async () => {
+      mockOrderRepo.find.mockResolvedValue([]);
+
+      const res = await request(app.getHttpServer())
+        .get('/orders')
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200);
+
+      expect(res.body).toEqual([]);
+    });
+
+    it('401 — rechaza petición sin token', async () => {
+      await request(app.getHttpServer()).get('/orders').expect(401);
+    });
+  });
+
+  describe('GET /orders/provider', () => {
+    it('200 — retorna órdenes asociadas a servicios del proveedor autenticado', async () => {
+      const orders = [
+        makeOrder(),
+        makeOrder({ id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a55' }),
+      ];
+
+      mockOrderRepo.find.mockResolvedValue(orders);
+
+      const res = await request(app.getHttpServer())
+        .get('/orders/provider')
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200);
+
+      expect(Array.isArray(res.body)).toBe(true);
+      expect(res.body).toHaveLength(2);
+
+      expect(mockOrderRepo.find).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            service: {
+              provider: {
+                id: USER_ID,
+              },
+            },
+          },
+          relations: {
+            user: true,
+            service: {
+              provider: true,
+            },
+          },
+          order: {
+            createdAt: 'DESC',
+          },
+        }),
+      );
+    });
+
+    it('200 — retorna arreglo vacío si el proveedor no tiene trabajos recibidos', async () => {
+      mockOrderRepo.find.mockResolvedValue([]);
+
+      const res = await request(app.getHttpServer())
+        .get('/orders/provider')
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200);
+
+      expect(res.body).toEqual([]);
+    });
+
+    it('401 — rechaza petición sin token', async () => {
+      await request(app.getHttpServer()).get('/orders/provider').expect(401);
+    });
+  });
+
   describe('GET /orders/:orderId', () => {
     it('200 — retorna la orden cuando existe y pertenece al usuario', async () => {
       mockOrderRepo.findOne.mockResolvedValue(makeOrder());
