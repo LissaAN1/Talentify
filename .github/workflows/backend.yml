@@ -1,0 +1,104 @@
+name: Backend
+
+on:
+  push:
+    branches: ['**']
+    paths: ['back/**', '.github/workflows/backend.yml']
+  pull_request:
+    branches: [main, dev]
+    paths: ['back/**', '.github/workflows/backend.yml']
+
+defaults:
+  run:
+    working-directory: back
+
+jobs:
+  # Job 1: pruebas unitarias con cobertura (no necesitan base de datos)
+  unit-tests:
+    name: Pruebas unitarias
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout del código
+        uses: actions/checkout@v4
+
+      - name: Instalar pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.30.3
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: pnpm
+          cache-dependency-path: back/pnpm-lock.yaml
+
+      - name: Instalar dependencias
+        run: pnpm install --frozen-lockfile
+
+      - name: Compilar
+        run: pnpm build
+
+      - name: Ejecutar pruebas unitarias con cobertura
+        run: pnpm test:cov
+        env:
+          JWT_SECRET: test-secret-ci
+
+      - name: Subir reporte de cobertura
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: backend-coverage
+          path: back/coverage/
+          retention-days: 7
+
+  # Job 2: pruebas de integración (e2e con Supertest) contra PostgreSQL
+  e2e-tests:
+    name: Pruebas e2e
+    runs-on: ubuntu-latest
+    needs: unit-tests
+
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: talentify_user
+          POSTGRES_PASSWORD: ci_password
+          POSTGRES_DB: talentify_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DB_HOST: localhost
+      DB_PORT: 5432
+      DB_NAME: talentify_db
+      DB_USERNAME: talentify_user
+      DB_PASSWORD: ci_password
+      JWT_SECRET: test-secret-ci
+
+    steps:
+      - name: Checkout del código
+        uses: actions/checkout@v4
+
+      - name: Instalar pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.30.3
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: pnpm
+          cache-dependency-path: back/pnpm-lock.yaml
+
+      - name: Instalar dependencias
+        run: pnpm install --frozen-lockfile
+
+      - name: Ejecutar pruebas e2e
+        run: pnpm test:e2e
